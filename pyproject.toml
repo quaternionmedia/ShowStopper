@@ -2,13 +2,11 @@
 name = "ShowStopper"
 version = "0.0.1"
 description = "Stop-watch geared towards tracking need for the performing arts"
-authors = [
-    {name = "Quaternion Media, LLC", email = "harpo@quaternion.media"},
-]
+authors = [{ name = "Quaternion Media, LLC", email = "harpo@quaternion.media" }]
 dependencies = ["textual>=0.86.3"]
 requires-python = "~=3.9"
 readme = "README.md"
-license = {text = "MIT"}
+license = { text = "MIT" }
 
 [build-system]
 requires = ["pdm-backend"]
@@ -19,6 +17,8 @@ build-backend = "pdm.backend"
 distribution = true
 
 [dependency-groups]
-dev = [
-    "textual[dev]>=0.86.3",
-]
+dev = ["textual-dev>=1.7.0"]
+
+[tool.pdm.scripts]
+start = "textual run stopwatch.py"
+serve = "textual serve --dev stopwatch.py"

@@ -1,3 +1,4 @@
 .venv
 .pdm-python
 .pdm-build
+*.log
