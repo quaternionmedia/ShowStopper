@@ -1,7 +1,7 @@
 from time import monotonic
 
 from textual.app import App, ComposeResult
-from textual.containers import HorizontalGroup, VerticalScroll
+from textual.containers import HorizontalScroll, VerticalScroll
 from textual.reactive import reactive
 from textual.widgets import Button, Digits, Footer, Header
 
@@ -44,7 +44,7 @@ class TimeDisplay(Digits):
         self.time = 0
 
 
-class Stopwatch(HorizontalGroup):
+class Stopwatch(HorizontalScroll):
     """A stopwatch widget."""
 
     def on_button_pressed(self, event: Button.Pressed) -> None:

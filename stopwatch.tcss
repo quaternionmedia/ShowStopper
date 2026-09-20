@@ -8,7 +8,7 @@ Stopwatch {
 
 TimeDisplay {   
     text-align: center;
-    color: $foreground-muted;
+    color: $foreground;
     height: 3;
 }
 
@@ -30,7 +30,7 @@ Button {
 }
 
 .started {
-    background: $success-muted;
+    background: $success;
     color: $text;
 }
 
