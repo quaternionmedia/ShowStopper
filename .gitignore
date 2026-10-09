@@ -2,3 +2,4 @@
 .pdm-python
 .pdm-build
 *.log
+__pycache__
