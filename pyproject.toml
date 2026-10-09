@@ -17,8 +17,9 @@ build-backend = "pdm.backend"
 distribution = true
 
 [dependency-groups]
-dev = ["textual-dev>=1.7.0"]
+dev = ["textual-dev>=1.7.0", "pytest>=8"]
 
 [tool.pdm.scripts]
 start = "textual run stopwatch.py"
 serve = "textual serve --dev stopwatch.py"
+test = "pytest tests walkthrough --doctest-glob=*.md"
