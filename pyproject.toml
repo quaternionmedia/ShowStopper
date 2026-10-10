@@ -8,6 +8,9 @@ requires-python = "~=3.9"
 readme = "README.md"
 license = { text = "MIT" }
 
+[project.scripts]
+showstopper = "showstopper_cli:main"
+
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"

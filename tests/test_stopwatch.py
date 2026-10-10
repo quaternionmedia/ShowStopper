@@ -6,6 +6,7 @@ every run.
 """
 
 import asyncio
+import os
 from pathlib import Path
 
 import pytest
@@ -13,7 +14,10 @@ import pytest
 import stopwatch
 from stopwatch import Stopwatch, StopwatchApp, TimeDisplay
 
-MEDIA = Path(__file__).resolve().parent.parent / "walkthrough" / "media"
+# `showstopper check` points the shutter elsewhere, so a check writes no picture
+# into the checkout.
+MEDIA = Path(os.environ.get("SHOWSTOPPER_SHOTS")
+             or Path(__file__).resolve().parent.parent / "walkthrough" / "media")
 
 
 class Clock:

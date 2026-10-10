@@ -53,6 +53,13 @@ pdm start    # in this terminal
 pdm serve    # in a browser, through textual-serve
 ```
 
+`showstopper serve --host H --port P --state DIR` serves it in a browser on
+exactly that address, and `showstopper check --url U --shots DIR` checks a
+ShowStopper already served there: that the address streams this app, and that
+the stopwatch behaves, with the suite's pictures written to `DIR`. The two are
+the performing family's demo contract, which the qm corpus declares once for
+every member.
+
 ## Running the tests
 
 ```sh
