@@ -92,9 +92,16 @@ def check(url: str, shots: Path) -> int:
         return CANNOT_SAY
     try:
         import aiohttp  # noqa: F401  (textual-serve's own client library)
-        import pytest  # noqa: F401
     except ImportError as error:
         print(f"check could not run: {error.name} is missing: pdm install", file=sys.stderr)
+        return CANNOT_SAY
+    # Python exits 1 when `-m` names a module it cannot run, which is also the
+    # status of a failed assertion: a broken pytest would read as ShowStopper failing.
+    runner = subprocess.run([sys.executable, "-m", "pytest", "--version"],
+                            capture_output=True, text=True, check=False)
+    if runner.returncode != 0:
+        print(f"check could not run: pytest does not run here: "
+              f"{(runner.stderr or runner.stdout).strip()[-200:]}", file=sys.stderr)
         return CANNOT_SAY
 
     streamed, frames = asyncio.run(first_frame_with(url, b"Start"))
