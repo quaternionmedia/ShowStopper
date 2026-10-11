@@ -14,6 +14,15 @@ import pytest
 import stopwatch
 from stopwatch import Stopwatch, StopwatchApp, TimeDisplay
 
+def label_text(widget) -> str:
+    """The text a Label shows: `renderable` up to Textual 1.x, `content` after."""
+    missing = object()
+    value = getattr(widget, "renderable", missing)
+    if value is missing:
+        value = widget.content
+    return str(value)
+
+
 # `showstopper check` points the shutter elsewhere, so a check writes no picture
 # into the checkout.
 MEDIA = Path(os.environ.get("SHOWSTOPPER_SHOTS")
@@ -211,8 +220,8 @@ def test_a_cue_moves_the_show_clock_and_the_view_follows(clock):
             status = shown.query_one("#show-status")
             laps = shown.query_one("#show-laps")
 
-            await until(pilot, lambda: "no cue yet" in str(status.renderable), "first read")
-            assert "stopped" in str(status.renderable)
+            await until(pilot, lambda: "no cue yet" in label_text(status), "first read")
+            assert "stopped" in label_text(status)
             assert display.value == "00:00:00.00"
 
             assert member.receive(cue("3", "Second tune", "start"))[0] == 200
@@ -220,15 +229,15 @@ def test_a_cue_moves_the_show_clock_and_the_view_follows(clock):
             await until(pilot, lambda: shown.has_class("started"), "the view sees it running")
             await tick(pilot)
             assert display.value == "00:01:05.25"
-            assert str(status.renderable) == "Show clock\nrunning\ncue 3 Second tune"
+            assert label_text(status) == "Show clock\nrunning\ncue 3 Second tune"
 
             assert member.receive(cue("4", "Bridge", "lap"))[0] == 200
             clock.advance(10)
-            await until(pilot, lambda: "lap 1" in str(laps.renderable), "the lap is shown")
+            await until(pilot, lambda: "lap 1" in label_text(laps), "the lap is shown")
             await tick(pilot)
-            assert str(laps.renderable) == "lap 1 00:01:05.25"
+            assert label_text(laps) == "lap 1 00:01:05.25"
             assert display.value == "00:01:15.25"
-            assert "cue 4 Bridge" in str(status.renderable)
+            assert "cue 4 Bridge" in label_text(status)
             # The rows below are the view's own, and a cue leaves them alone.
             assert not any(watch.has_class("started") for watch in app.query(Stopwatch))
             shoot(app, "03-the-show-clock-running")
@@ -238,7 +247,7 @@ def test_a_cue_moves_the_show_clock_and_the_view_follows(clock):
             clock.advance(30)
             await tick(pilot)
             assert display.value == "00:01:15.25"
-            assert str(status.renderable) == "Show clock\nstopped\ncue 5 Bows"
+            assert label_text(status) == "Show clock\nstopped\ncue 5 Bows"
 
     asyncio.run(main())
 
@@ -258,6 +267,6 @@ def test_a_show_clock_that_cannot_be_read_says_so(clock):
         app = StopwatchApp(family=unreachable)
         async with app.run_test(size=(80, 30)) as pilot:
             status = app.query_one("#show-status")
-            await until(pilot, lambda: "unreachable" in str(status.renderable), "said so")
+            await until(pilot, lambda: "unreachable" in label_text(status), "said so")
 
     asyncio.run(main())
