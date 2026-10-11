@@ -49,3 +49,28 @@ Button {
 .started #reset {
     visibility: hidden
 }
+
+ShowClock {
+    background: $boost;
+    height: auto;
+    margin: 1;
+    padding: 1;
+}
+
+#show-row {
+    height: 3;
+}
+
+#show-status {
+    width: 24;
+    height: 3;
+}
+
+ShowClock TimeDisplay {
+    width: 1fr;
+}
+
+#show-laps {
+    margin-top: 1;
+    color: $foreground-muted;
+}

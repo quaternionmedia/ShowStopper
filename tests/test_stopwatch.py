@@ -180,3 +180,84 @@ def test_d_toggles_dark_mode(clock):
         assert app.theme == before
 
     run(scenario)
+
+
+def cue(number: str, name: str, verb: str) -> dict:
+    return {"cue": {"number": number, "name": name, "fired_at": "2026-10-10T20:00:00+00:00"},
+            "action": {"clock": verb}}
+
+
+async def until(pilot, holds, what: str):
+    """Wait for `holds()` to be true: the show clock reads on its own interval."""
+    for _ in range(100):
+        if holds():
+            return
+        await pilot.pause(0.05)
+    raise AssertionError(f"never happened: {what}")
+
+
+def test_a_cue_moves_the_show_clock_and_the_view_follows(clock):
+    # One clock, kept where `showstopper serve` keeps it, and a view reading it.
+    # The member and the view share the test's clock, so every time is exact.
+    import family
+
+    member = family.Member(family.Clock(now=clock))
+
+    async def main():
+        app = StopwatchApp(family=member.snapshot)
+        async with app.run_test(size=(80, 30)) as pilot:
+            shown = app.query_one(stopwatch.ShowClock)
+            display = shown.query_one(TimeDisplay)
+            status = shown.query_one("#show-status")
+            laps = shown.query_one("#show-laps")
+
+            await until(pilot, lambda: "no cue yet" in str(status.renderable), "first read")
+            assert "stopped" in str(status.renderable)
+            assert display.value == "00:00:00.00"
+
+            assert member.receive(cue("3", "Second tune", "start"))[0] == 200
+            clock.advance(65.25)
+            await until(pilot, lambda: shown.has_class("started"), "the view sees it running")
+            await tick(pilot)
+            assert display.value == "00:01:05.25"
+            assert str(status.renderable) == "Show clock\nrunning\ncue 3 Second tune"
+
+            assert member.receive(cue("4", "Bridge", "lap"))[0] == 200
+            clock.advance(10)
+            await until(pilot, lambda: "lap 1" in str(laps.renderable), "the lap is shown")
+            await tick(pilot)
+            assert str(laps.renderable) == "lap 1 00:01:05.25"
+            assert display.value == "00:01:15.25"
+            assert "cue 4 Bridge" in str(status.renderable)
+            # The rows below are the view's own, and a cue leaves them alone.
+            assert not any(watch.has_class("started") for watch in app.query(Stopwatch))
+            shoot(app, "03-the-show-clock-running")
+
+            assert member.receive(cue("5", "Bows", "stop"))[0] == 200
+            await until(pilot, lambda: not shown.has_class("started"), "the view sees it stop")
+            clock.advance(30)
+            await tick(pilot)
+            assert display.value == "00:01:15.25"
+            assert str(status.renderable) == "Show clock\nstopped\ncue 5 Bows"
+
+    asyncio.run(main())
+
+
+def test_a_view_without_a_show_clock_is_the_stopwatch_it_was(clock):
+    async def scenario(app, pilot):
+        assert not app.query(stopwatch.ShowClock)
+
+    run(scenario)
+
+
+def test_a_show_clock_that_cannot_be_read_says_so(clock):
+    def unreachable():
+        raise OSError("nothing answers")
+
+    async def main():
+        app = StopwatchApp(family=unreachable)
+        async with app.run_test(size=(80, 30)) as pilot:
+            status = app.query_one("#show-status")
+            await until(pilot, lambda: "unreachable" in str(status.renderable), "said so")
+
+    asyncio.run(main())

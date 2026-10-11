@@ -28,9 +28,47 @@ def test_serve_hands_textual_serve_the_address_and_this_app(tmp_path, monkeypatc
 
     assert status == 0
     assert made["host"] == "127.0.0.1" and made["port"] == 18410 and made["served"]
+    # Each connection's app process is told where the one show clock is kept.
     assert made["command"] == (
-        f'"{sys.executable}" "{showstopper_cli.HERE / "stopwatch.py"}"')
+        f'"{sys.executable}" "{showstopper_cli.HERE / "stopwatch.py"}" '
+        f"--family http://127.0.0.1:18410")
     assert (tmp_path / "s").is_dir()
+
+
+def test_serve_on_every_interface_points_the_views_at_loopback(tmp_path, monkeypatch):
+    import textual_serve.server
+
+    made = {}
+
+    class Server:
+        def __init__(self, command, host, port, title):
+            made.update(command=command, host=host)
+
+        def serve(self):
+            pass
+
+    monkeypatch.setattr(textual_serve.server, "Server", Server)
+    showstopper_cli.main(
+        ["serve", "--host", "0.0.0.0", "--port", "18410", "--state", str(tmp_path / "s")])
+
+    assert made["host"] == "0.0.0.0"
+    assert made["command"].endswith("--family http://127.0.0.1:18410")
+
+
+def test_the_served_port_carries_the_family_routes_beside_the_page():
+    # textual-serve's own app, built the way `serve` builds it: the page, its
+    # websocket, and the two routes the hub calls, all on one port.
+    import asyncio
+
+    import family
+    from textual_serve.server import Server
+
+    served = family.served(Server, family.Member())("unused", host="127.0.0.1", port=18410)
+    app = asyncio.run(served._make_app())
+    routes = {(route.method, route.resource.canonical) for route in app.router.routes()}
+
+    assert {("GET", "/"), ("GET", "/ws")} <= routes
+    assert {("POST", "/family/cue"), ("GET", "/family/state")} <= routes
 
 
 def test_check_with_nothing_answering_cannot_say_rather_than_fail(tmp_path, capsys):
