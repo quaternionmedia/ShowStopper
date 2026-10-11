@@ -309,3 +309,19 @@ def test_a_cue_posted_changes_what_every_connected_view_shows(served):
 
     asyncio.run(scenario())
 
+
+def test_the_checks_wait_for_a_frame_ends_on_time_through_the_servers_pings(
+        served, monkeypatch):
+    # textual-serve pings every 15 seconds, and a wait that outlasted one ping
+    # used to restart and never end: `check` hung rather than answering 1. A
+    # stopped clock leaves the view idle, so nothing but the ping arrives.
+    import showstopper_cli
+
+    assert served.post(cue("40", {"clock": "reset"}))[0] == 200
+    monkeypatch.setattr(showstopper_cli, "FIRST_FRAME", 16.0)
+    started = time.monotonic()
+    found, frames = asyncio.run(asyncio.wait_for(
+        showstopper_cli.first_frame_with(served.base + "/", b"never drawn"), 45))
+
+    assert (found, frames > 0) == (False, True)
+    assert time.monotonic() - started < 30

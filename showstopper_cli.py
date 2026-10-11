@@ -80,8 +80,11 @@ async def first_frame_with(url: str, label: bytes) -> tuple[bool, int]:
             loop = asyncio.get_running_loop()
             deadline = loop.time() + FIRST_FRAME
             while loop.time() < deadline:
+                # `receive(timeout=...)` restarts its timeout after answering
+                # each ping, and textual-serve pings every 15 seconds: a wait
+                # longer than that never ended. This deadline is the whole wait.
                 try:
-                    message = await ws.receive(timeout=deadline - loop.time())
+                    message = await asyncio.wait_for(ws.receive(), deadline - loop.time())
                 except asyncio.TimeoutError:
                     break
                 if message.type == aiohttp.WSMsgType.BINARY:
