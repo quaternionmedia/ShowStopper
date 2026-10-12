@@ -5,8 +5,10 @@
 
 The contract is declared once for every member of the performing family, in
 the qm corpus's ci/family-demo.yaml. `serve` puts the stopwatch in a browser
-through textual-serve, on exactly the address it is given. `check` asks two
-things, and says which it asked:
+through textual-serve, on exactly the address it is given, and keeps the show
+clock the hub drives on the same port: `POST /family/cue` and
+`GET /family/state`, in family.py. `check` asks two things, and says which it
+asked:
 
 - the served address streams this app: a websocket opened the way the
   browser page opens one carries the app's own Start button. textual-serve
@@ -40,16 +42,24 @@ FIRST_FRAME = 20.0
 
 
 def serve(host: str, port: int, state: Path) -> int:
-    """textual-serve on exactly the address given. ShowStopper keeps no state."""
+    """textual-serve on exactly the address given, with the show clock beside it.
+
+    The clock is held in this process and nowhere else; each connection's app
+    process is told where to read it. Nothing is written to `state`.
+    """
     try:
         from textual_serve.server import Server
     except ImportError:
         print("textual-serve is missing: it comes with the dev group (pdm install)",
               file=sys.stderr)
         return 2
+    import family
+
     state.mkdir(parents=True, exist_ok=True)
-    command = f'"{sys.executable}" "{HERE / "stopwatch.py"}"'
-    Server(command, host=host, port=port, title="ShowStopper").serve()
+    command = (f'"{sys.executable}" "{HERE / "stopwatch.py"}" '
+               f"--family {family.address(host, port)}")
+    served = family.served(Server, family.Member())
+    served(command, host=host, port=port, title="ShowStopper").serve()
     return 0
 
 
@@ -70,8 +80,11 @@ async def first_frame_with(url: str, label: bytes) -> tuple[bool, int]:
             loop = asyncio.get_running_loop()
             deadline = loop.time() + FIRST_FRAME
             while loop.time() < deadline:
+                # `receive(timeout=...)` restarts its timeout after answering
+                # each ping, and textual-serve pings every 15 seconds: a wait
+                # longer than that never ended. This deadline is the whole wait.
                 try:
-                    message = await ws.receive(timeout=deadline - loop.time())
+                    message = await asyncio.wait_for(ws.receive(), deadline - loop.time())
                 except asyncio.TimeoutError:
                     break
                 if message.type == aiohttp.WSMsgType.BINARY:
